@@ -1,0 +1,106 @@
+I want to build a full-stack application named DeliverMail.io, modeled after SendGrid.com, offering only email services. The UI must replicate the structure and feel of SendGrid.com.
+
+This project should NOT use Replit authentication module – implement a custom JWT-based auth system with hashed passwords and role-based access (user/admin).
+
+Functional Requirements:
+
+Public Pages
+
+Home with marketing content (replica of SendGrid's hero section, features)
+pricing - Table showing pricing for email plans
+docs - Static page linking to email API usage guides
+login & signup - Auth flow using JWT
+
+
+Authentication
+Custom user signup/login with JWT
+Role-based (admin/user)
+Secure password hashing (bcrypt)
+Forgot/reset password flows
+Signup, login, password reset – all forms with validation (email format, password strength)
+
+Core User Features
+Dashboard: summary of sent emails, stats
+Send Email: UI form using SMTP and mocked REST, validated inputs (to, subject, body, attachments)
+Templates: CRUD, search by name/subject, Validation required fields, name uniqueness
+Logs: search/filter by email address, status, date
+API Keys: create, revoke, scope-based, searchable
+Settings: profile update, SMTP/REST info
+Billing: integrate Stripe Checkout to manage subscription plans
+
+Admin Panel
+View/manage users: search, filter, suspend, reset password
+System logs: filter by endpoint, user, time
+Plan Management: define/edit Stripe-linked plans
+Global Stats: total usage, success rate, bounce rate
+Send alerts: announcements, system maintenance messages
+View Stripe subscription records
+
+Stripe Integration
+Use Stripe Checkout or Stripe Billing
+Allow users to:
+Choose a pricing plan
+View current plan
+Upgrade/downgrade/cancel
+Admin can see subscription history
+
+Tech Stack
+Frontend: React + TailwindCSS
+Backend: Node.js + Express
+DB: MongoDB
+Auth: JWT (custom built, no Replit module)
+Email: Nodemailer with SMTP and mocked REST endpoint
+Payments: Stripe (with webhook handling)
+
+Filters & Search (Required in:)
+Email logs
+Template list
+API keys
+Admin user management
+Plan/subscription records
+Billing history
+
+AI Assistant
+Integrated chatbot across all user pages
+Uses OpenAI API or local LLM to answer user queries
+Logs all queries/responses
+If AI fails, logs for admin review
+Admin can input correct answers → appended to a dynamic knowledge base
+Future queries use this base to enhance answers
+Optional thumbs-up/down for feedback
+
+SEO Optimization (for all public pages)
+Semantic HTML and proper headings
+Meta title and description tags
+OG tags for social sharing
+Canonical URLs and clean paths
+Robots.txt and sitemap.xml
+Structured data using JSON-LD where required
+
+
+
+/client
+  /components
+  /pages
+  /admin
+  /billing
+  /chatbot
+  /seo
+/server
+  /routes
+  /controllers
+  /models
+  /middlewares
+  /ai
+  /utils
+  /webhooks
+  /services
+/public
+  robots.txt
+  sitemap.xml
+
+
+
+
+
+
