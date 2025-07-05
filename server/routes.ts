@@ -415,6 +415,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to check users (remove in production)
+  app.get("/api/debug/users", async (req, res) => {
+    const users = await storage.getAllUsers();
+    res.json(users.map(user => ({ 
+      id: user.id, 
+      email: user.email, 
+      username: user.username,
+      fullName: user.fullName,
+      role: user.role 
+    })));
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
