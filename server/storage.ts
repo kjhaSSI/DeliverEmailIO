@@ -78,6 +78,47 @@ export class MemStorage implements IStorage {
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
+    
+    // Initialize demo users
+    this.initializeDemoUsers();
+  }
+
+  private initializeDemoUsers() {
+    // Create demo user account
+    const demoUser: User = {
+      id: 1,
+      username: "demo",
+      email: "demo@example.com",
+      password: "3ca3b85b387a493748ae7556520ee8cc39f80cfd24253735cd6ac20c1c5c55d3a33490bc734ecb8d56634a66346cde73fd4b2ab89e7b3b4ef149864c4554bb29.993fd2ed8b6e352b80eb1d8efc2c089e", // password: "password"
+      fullName: "Demo User",
+      role: "user",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      plan: "free",
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    // Create demo admin user
+    const adminUser: User = {
+      id: 2,
+      username: "admin",
+      email: "admin@example.com", 
+      password: "3ca3b85b387a493748ae7556520ee8cc39f80cfd24253735cd6ac20c1c5c55d3a33490bc734ecb8d56634a66346cde73fd4b2ab89e7b3b4ef149864c4554bb29.993fd2ed8b6e352b80eb1d8efc2c089e", // password: "password"
+      fullName: "Admin User",
+      role: "admin",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      plan: "pro",
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.users.set(1, demoUser);
+    this.users.set(2, adminUser);
+    this.currentId = 3;
   }
 
   async getUser(id: number): Promise<User | undefined> {
