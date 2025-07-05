@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://delivermail.io/sitemap.xml
+
+# Disallow admin pages
+Disallow: /admin/
+Disallow: /dashboard/
+
+# Disallow auth pages
+Disallow: /auth
+
+# Allow important pages
+Allow: /
+Allow: /pricing
+Allow: /docs
