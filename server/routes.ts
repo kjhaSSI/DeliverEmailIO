@@ -278,71 +278,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe Integration
-  if (stripe) {
-    app.post("/api/create-subscription", requireAuth, async (req, res) => {
-      try {
-        let user = req.user;
+  // Mock Stripe Billing Integration (for demonstration)
+  app.post("/api/create-subscription", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { planName } = req.body;
 
-        // Check if user already has a subscription
-        if (user.stripeSubscriptionId) {
-          const subscription = await stripe!.subscriptions.retrieve(user.stripeSubscriptionId);
-          res.json({
-            subscriptionId: subscription.id,
-            clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
-          });
-          return;
-        }
+      // Mock customer creation
+      const mockCustomerId = `cus_mock_${user.id}_${Date.now()}`;
+      const mockSubscriptionId = `sub_mock_${user.id}_${Date.now()}`;
 
-        // Create Stripe customer if doesn't exist
-        let customerId = user.stripeCustomerId;
-        if (!customerId) {
-          const customer = await stripe!.customers.create({
-            email: user.email,
-            name: user.fullName,
-          });
-          customerId = customer.id;
-          await storage.updateUserStripeInfo(user.id, customerId);
-        }
+      // Update user with mock Stripe info
+      await storage.updateUserStripeInfo(user.id, mockCustomerId, mockSubscriptionId);
 
-        // Create subscription
-        const subscription = await stripe!.subscriptions.create({
-          customer: customerId,
-          items: [{
-            price: process.env.STRIPE_PRICE_ID || "price_test123", // Set this in production
-          }],
-          payment_behavior: 'default_incomplete',
-          expand: ['latest_invoice.payment_intent'],
-        });
+      // Create mock subscription record
+      const mockSubscription = await storage.createStripeSubscription({
+        userId: user.id,
+        stripeSubscriptionId: mockSubscriptionId,
+        status: "active",
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        cancelAtPeriodEnd: false,
+      });
 
-        await storage.updateUserStripeInfo(user.id, customerId, subscription.id);
-        await storage.createStripeSubscription({
+      // Update user plan
+      const planMap: { [key: string]: string } = {
+        'pro': 'pro',
+        'enterprise': 'enterprise'
+      };
+      
+      if (planMap[planName]) {
+        await storage.updateUser(user.id, { plan: planMap[planName] });
+      }
+
+      res.json({
+        subscriptionId: mockSubscriptionId,
+        clientSecret: `pi_mock_${Date.now()}_secret_mock`,
+        success: true,
+        message: `Successfully subscribed to ${planName} plan (Mock)`
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/billing/subscription", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      let subscription = await storage.getStripeSubscription(user.id);
+      
+      // If no subscription exists, create a mock one for free plan users
+      if (!subscription && user.plan === 'free') {
+        subscription = {
+          id: 1,
           userId: user.id,
-          stripeSubscriptionId: subscription.id,
-          status: subscription.status,
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        });
-
-        res.json({
-          subscriptionId: subscription.id,
-          clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
-        });
-      } catch (error: any) {
-        res.status(400).json({ message: error.message });
+          stripeSubscriptionId: `sub_free_${user.id}`,
+          status: "active",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          cancelAtPeriodEnd: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
       }
-    });
 
-    app.get("/api/billing/subscription", requireAuth, async (req, res) => {
-      try {
-        const subscription = await storage.getStripeSubscription(req.user.id);
-        res.json(subscription);
-      } catch (error: any) {
-        res.status(500).json({ message: error.message });
+      res.json(subscription);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/billing/cancel-subscription", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const subscription = await storage.getStripeSubscription(user.id);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: "No subscription found" });
       }
-    });
-  }
+
+      // Mock cancellation - set to cancel at period end
+      await storage.updateStripeSubscription(subscription.id, {
+        cancelAtPeriodEnd: true,
+        status: "canceling"
+      });
+
+      res.json({
+        success: true,
+        message: "Subscription will be canceled at the end of the current billing period"
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/billing/invoices", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      // Mock invoice data
+      const mockInvoices = [
+        {
+          id: "in_mock_001",
+          date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          amount: user.plan === 'pro' ? 29 : user.plan === 'enterprise' ? 99 : 0,
+          status: "paid",
+          planName: user.plan,
+          downloadUrl: "#"
+        },
+        {
+          id: "in_mock_002", 
+          date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+          amount: user.plan === 'pro' ? 29 : user.plan === 'enterprise' ? 99 : 0,
+          status: "paid",
+          planName: user.plan,
+          downloadUrl: "#"
+        }
+      ].filter(invoice => invoice.amount > 0); // Only show invoices for paid plans
+
+      res.json(mockInvoices);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   // Admin Routes
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
