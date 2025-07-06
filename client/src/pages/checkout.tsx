@@ -10,12 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { useBillingPeriod, PRICING_CONFIG, getPlanPricing } from "@/hooks/use-billing-period";
 import { ArrowLeft, CreditCard, Lock, CheckCircle } from "lucide-react";
 
 export default function Checkout() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { billingPeriod } = useBillingPeriod();
   const [, params] = useRoute("/checkout/:plan");
   const planName = params?.plan || "pro";
 
@@ -35,24 +37,23 @@ export default function Checkout() {
   const [processing, setProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
-  const planDetails = {
-    pro: {
-      name: "Pro",
-      price: 29,
-      features: ["50,000 emails/month", "Advanced analytics", "Priority support", "Template editor", "Custom domains"]
-    },
-    enterprise: {
-      name: "Enterprise", 
-      price: 99,
-      features: ["500,000 emails/month", "Custom analytics", "24/7 phone support", "Dedicated IP", "Custom integrations", "SLA guarantee"]
-    }
+  const config = PRICING_CONFIG[planName as keyof typeof PRICING_CONFIG] || PRICING_CONFIG.pro;
+  const pricing = getPlanPricing(planName as keyof typeof PRICING_CONFIG, billingPeriod);
+  
+  const currentPlan = {
+    name: planName.charAt(0).toUpperCase() + planName.slice(1),
+    price: pricing.displayPrice,
+    period: pricing.period,
+    features: config.features,
+    pricing
   };
-
-  const currentPlan = planDetails[planName as keyof typeof planDetails] || planDetails.pro;
 
   const createSubscriptionMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/create-subscription", { planName });
+      const res = await apiRequest("POST", "/api/create-subscription", { 
+        planName, 
+        billingPeriod 
+      });
       return await res.json();
     },
     onSuccess: (data) => {
@@ -291,7 +292,7 @@ export default function Checkout() {
                     ) : (
                       <>
                         <Lock className="w-4 h-4 mr-2" />
-                        Pay ${currentPlan.price}/month
+                        Pay ${currentPlan.price}/{currentPlan.period}
                       </>
                     )}
                   </Button>
@@ -310,9 +311,11 @@ export default function Checkout() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold">{currentPlan.name} Plan</h3>
-                    <p className="text-sm text-gray-600">Monthly subscription</p>
+                    <p className="text-sm text-gray-600">
+                      {billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1)} subscription
+                    </p>
                   </div>
-                  <Badge variant="secondary">Popular</Badge>
+                  {planName === 'pro' && <Badge variant="secondary">Popular</Badge>}
                 </div>
 
                 <div className="border-t pt-4">
@@ -328,6 +331,17 @@ export default function Checkout() {
                 </div>
 
                 <div className="border-t pt-4">
+                  {billingPeriod === 'yearly' && currentPlan.pricing.savingsPercentage > 0 && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-green-800">Yearly savings:</span>
+                        <span className="font-semibold text-green-800">
+                          ${currentPlan.pricing.yearlySavings} ({currentPlan.pricing.savingsPercentage}% off)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between items-center mb-2">
                     <span>Subtotal</span>
                     <span>${currentPlan.price}</span>
@@ -338,8 +352,13 @@ export default function Checkout() {
                   </div>
                   <div className="flex justify-between items-center font-semibold text-lg border-t pt-2">
                     <span>Total</span>
-                    <span>${currentPlan.price}/month</span>
+                    <span>${currentPlan.price}/{currentPlan.period}</span>
                   </div>
+                  {billingPeriod === 'yearly' && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Equivalent to ${currentPlan.pricing.price}/month when billed yearly
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

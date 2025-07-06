@@ -7,12 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useBillingPeriod, PRICING_CONFIG, getPlanPricing } from "@/hooks/use-billing-period";
+import BillingPeriodToggle from "@/components/billing-period-toggle";
 import { CheckCircle, CreditCard, Calendar, DollarSign, Zap, Download, AlertTriangle } from "lucide-react";
 
 export default function Billing() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { billingPeriod } = useBillingPeriod();
 
   const { data: subscription, isLoading: isSubscriptionLoading } = useQuery({
     queryKey: ["/api/billing/subscription"],
@@ -67,51 +70,24 @@ export default function Billing() {
     },
   });
 
-  const plans = [
-    {
-      name: "Free",
-      price: 0,
-      period: "month",
-      emails: "1,000",
-      features: [
-        "1,000 emails/month",
-        "Basic analytics",
-        "Email support",
-        "API access",
-      ],
-      current: user?.plan === "free",
-    },
-    {
-      name: "Pro",
-      price: 29,
-      period: "month",
-      emails: "50,000",
-      features: [
-        "50,000 emails/month",
-        "Advanced analytics",
-        "Priority support",
-        "Template editor",
-        "Custom domains",
-      ],
-      current: user?.plan === "pro",
-      popular: true,
-    },
-    {
-      name: "Enterprise",
-      price: 99,
-      period: "month",
-      emails: "500,000",
-      features: [
-        "500,000 emails/month",
-        "Custom analytics",
-        "24/7 phone support",
-        "Dedicated IP",
-        "Custom integrations",
-        "SLA guarantee",
-      ],
-      current: user?.plan === "enterprise",
-    },
-  ];
+  const planNames = ['free', 'pro', 'enterprise'] as const;
+  
+  const plans = planNames.map(planName => {
+    const config = PRICING_CONFIG[planName];
+    const pricing = getPlanPricing(planName, billingPeriod);
+    
+    return {
+      name: planName.charAt(0).toUpperCase() + planName.slice(1),
+      planKey: planName,
+      price: pricing.displayPrice,
+      period: pricing.period,
+      emails: config.emails,
+      features: config.features,
+      current: user?.plan === planName,
+      popular: planName === 'pro',
+      pricing,
+    };
+  });
 
   const currentPlan = plans.find(plan => plan.current);
 
@@ -234,6 +210,9 @@ export default function Billing() {
         <Card>
           <CardHeader>
             <CardTitle>Available Plans</CardTitle>
+            <div className="mt-4">
+              <BillingPeriodToggle />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -263,8 +242,28 @@ export default function Billing() {
                   <div className="text-center mb-6">
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                     <div className="mb-4">
-                      <span className="text-4xl font-bold text-gray-900">${plan.price}</span>
-                      <span className="text-gray-600">/{plan.period}</span>
+                      {billingPeriod === 'yearly' && plan.pricing.savingsPercentage > 0 ? (
+                        <div>
+                          <div className="flex items-center justify-center space-x-2 mb-1">
+                            <span className="text-lg text-gray-500 line-through">${plan.pricing.monthlyEquivalent * 12}</span>
+                            <Badge variant="secondary" className="bg-green-100 text-green-700">
+                              Save {plan.pricing.savingsPercentage}%
+                            </Badge>
+                          </div>
+                          <div>
+                            <span className="text-4xl font-bold text-gray-900">${plan.price}</span>
+                            <span className="text-gray-600">/{plan.period}</span>
+                          </div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            ${plan.pricing.price}/month when billed yearly
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="text-4xl font-bold text-gray-900">${plan.price}</span>
+                          <span className="text-gray-600">/{plan.period}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

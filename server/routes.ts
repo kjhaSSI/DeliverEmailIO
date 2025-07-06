@@ -282,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/create-subscription", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
-      const { planName } = req.body;
+      const { planName, billingPeriod = 'yearly' } = req.body;
 
       // Mock customer creation
       const mockCustomerId = `cus_mock_${user.id}_${Date.now()}`;
@@ -315,7 +315,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscriptionId: mockSubscriptionId,
         clientSecret: `pi_mock_${Date.now()}_secret_mock`,
         success: true,
-        message: `Successfully subscribed to ${planName} plan (Mock)`
+        message: `Successfully subscribed to ${planName} plan (${billingPeriod}) - Mock Integration`,
+        billingPeriod
       });
     } catch (error: any) {
       res.status(400).json({ message: error.message });

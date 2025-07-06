@@ -3,17 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle } from "lucide-react";
-
-interface PricingPlan {
-  name: string;
-  price: number;
-  period: string;
-  emails: string;
-  features: string[];
-  popular?: boolean;
-  buttonText: string;
-  buttonVariant?: "default" | "outline";
-}
+import { useBillingPeriod, PRICING_CONFIG, getPlanPricing } from "@/hooks/use-billing-period";
+import BillingPeriodToggle from "@/components/billing-period-toggle";
 
 interface PricingPlansProps {
   showTitle?: boolean;
@@ -21,54 +12,28 @@ interface PricingPlansProps {
 }
 
 export default function PricingPlans({ showTitle = true, className = "" }: PricingPlansProps) {
-  const plans: PricingPlan[] = [
-    {
-      name: "Free",
-      price: 0,
-      period: "month",
-      emails: "1,000",
-      features: [
-        "1,000 emails/month",
-        "Basic analytics",
-        "Email support",
-        "API access",
-      ],
-      buttonText: "Get started",
-      buttonVariant: "outline",
-    },
-    {
-      name: "Pro",
-      price: 29,
-      period: "month",
-      emails: "50,000",
-      features: [
-        "50,000 emails/month",
-        "Advanced analytics",
-        "Priority support",
-        "Template editor",
-        "Custom domains",
-      ],
-      popular: true,
-      buttonText: "Start free trial",
-      buttonVariant: "default",
-    },
-    {
-      name: "Enterprise",
-      price: 99,
-      period: "month",
-      emails: "500,000",
-      features: [
-        "500,000 emails/month",
-        "Custom analytics",
-        "24/7 phone support",
-        "Dedicated IP",
-        "Custom integrations",
-        "SLA guarantee",
-      ],
-      buttonText: "Contact sales",
-      buttonVariant: "outline",
-    },
-  ];
+  const { billingPeriod } = useBillingPeriod();
+
+  const planNames = ['free', 'pro', 'enterprise'] as const;
+  
+  const plans = planNames.map(planName => {
+    const config = PRICING_CONFIG[planName];
+    const pricing = getPlanPricing(planName, billingPeriod);
+    
+    return {
+      name: planName.charAt(0).toUpperCase() + planName.slice(1),
+      planKey: planName,
+      price: pricing.displayPrice,
+      period: pricing.period,
+      emails: config.emails,
+      features: config.features,
+      popular: planName === 'pro',
+      buttonText: planName === 'free' ? 'Get started' : 
+                  planName === 'enterprise' ? 'Contact sales' : 'Start free trial',
+      buttonVariant: (planName === 'free' || planName === 'enterprise') ? 'outline' as const : 'default' as const,
+      pricing,
+    };
+  });
 
   return (
     <div className={className}>
@@ -80,6 +45,9 @@ export default function PricingPlans({ showTitle = true, className = "" }: Prici
           <p className="text-xl text-gray-600">
             Start free, scale as you grow. No hidden fees or commitments.
           </p>
+          <div className="mt-8">
+            <BillingPeriodToggle />
+          </div>
         </div>
       )}
 
@@ -103,8 +71,28 @@ export default function PricingPlans({ showTitle = true, className = "" }: Prici
             <div className="text-center mb-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
               <div className="mb-4">
-                <span className="text-4xl font-bold text-gray-900">${plan.price}</span>
-                <span className="text-gray-600">/{plan.period}</span>
+                {billingPeriod === 'yearly' && plan.pricing.savingsPercentage > 0 ? (
+                  <div>
+                    <div className="flex items-center justify-center space-x-2 mb-1">
+                      <span className="text-lg text-gray-500 line-through">${plan.pricing.monthlyEquivalent * 12}</span>
+                      <Badge variant="secondary" className="bg-green-100 text-green-700">
+                        Save {plan.pricing.savingsPercentage}%
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="text-4xl font-bold text-gray-900">${plan.price}</span>
+                      <span className="text-gray-600">/{plan.period}</span>
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      ${plan.pricing.price}/month when billed yearly
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-4xl font-bold text-gray-900">${plan.price}</span>
+                    <span className="text-gray-600">/{plan.period}</span>
+                  </div>
+                )}
               </div>
               <p className="text-gray-600">
                 {plan.name === "Free" && "Perfect for getting started"}
