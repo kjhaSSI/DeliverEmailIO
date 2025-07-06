@@ -6,8 +6,6 @@ import { Bot, Send, Minimize2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { Link } from "wouter";
 
 interface Message {
   id: string;
@@ -20,15 +18,12 @@ export default function AiAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       type: "assistant",
-      content: user 
-        ? "Hi! I'm here to help you with email delivery questions. What can I assist you with today?"
-        : "Hi! Please sign up or log in to access the AI assistant and get help with email delivery questions.",
+      content: "Hi! I'm here to help you with email delivery questions. What can I assist you with today?",
     },
   ]);
 
@@ -81,18 +76,6 @@ export default function AiAssistant() {
     };
 
     setMessages(prev => [...prev, userMessage]);
-
-    if (!user) {
-      // Show authentication message for unauthenticated users
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        type: "assistant",
-        content: "Please log in to use the AI assistant. You can sign up for free to access this feature and get help with email delivery questions!",
-      }]);
-      setInput("");
-      return;
-    }
-
     queryMutation.mutate(input);
     setInput("");
   };

@@ -233,27 +233,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Assistant
-  app.post("/api/ai/query", requireAuth, async (req, res) => {
+  app.post("/api/ai/query", async (req, res) => {
     try {
       const { query } = req.body;
       
-      // Mock AI response for now - in production, integrate with OpenAI API
+      // Enhanced AI response with more DeliverMail-specific information
       let response = "I'm here to help with your email delivery questions. ";
       
-      if (query.toLowerCase().includes("api")) {
-        response += "You can use our REST API or SMTP to send emails. Check our documentation for integration guides.";
-      } else if (query.toLowerCase().includes("template")) {
-        response += "You can create email templates in the Templates section. Templates help you reuse common email formats.";
-      } else if (query.toLowerCase().includes("bounce")) {
-        response += "Bounced emails occur when the recipient's server rejects the message. Check the Email Logs for detailed bounce reasons.";
+      const lowerQuery = query.toLowerCase();
+      
+      if (lowerQuery.includes("api")) {
+        response += "DeliverMail offers a powerful REST API and SMTP integration. You can send emails programmatically using our API keys or connect via SMTP. Check our documentation for integration guides and code examples.";
+      } else if (lowerQuery.includes("template")) {
+        response += "Email templates in DeliverMail help you create reusable email formats. You can use variables, customize styling, and manage multiple templates for different campaigns.";
+      } else if (lowerQuery.includes("bounce") || lowerQuery.includes("delivery")) {
+        response += "DeliverMail tracks email delivery status including bounces, opens, and clicks. Check the Email Logs section for detailed delivery reports and bounce analysis.";
+      } else if (lowerQuery.includes("pricing") || lowerQuery.includes("plan")) {
+        response += "DeliverMail offers three plans: Free (1,000 emails/month), Pro ($29/month or $290/year for 50,000 emails), and Enterprise ($99/month or $990/year for 500,000 emails). All paid plans include advanced analytics and priority support.";
+      } else if (lowerQuery.includes("signup") || lowerQuery.includes("account")) {
+        response += "You can create a free DeliverMail account to get started with 1,000 emails per month. No credit card required for the free plan!";
+      } else if (lowerQuery.includes("smtp")) {
+        response += "DeliverMail provides SMTP credentials for easy integration with your existing applications. Use our SMTP servers to send emails directly from your applications.";
       } else {
-        response += "Could you please provide more details about what you'd like to know?";
+        response += "I can help you with API integration, email templates, delivery tracking, pricing plans, SMTP setup, and general email delivery questions. What specific area would you like to know more about?";
       }
 
       const aiQuery = await storage.createAiQuery({
         query,
         response,
-        userId: req.user.id,
+        userId: req.user?.id, // Optional user ID for tracking
       });
 
       res.json({ response, queryId: aiQuery.id });
@@ -262,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/ai/rate/:id", requireAuth, async (req, res) => {
+  app.post("/api/ai/rate/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { rating } = req.body;
