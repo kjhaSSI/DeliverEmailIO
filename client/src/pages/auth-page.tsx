@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,11 +20,21 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const signupSchema = insertUserSchema.extend({
+  selectedPlan: z.enum(["free", "pro", "enterprise"]).default("free"),
+});
+
 type LoginFormData = z.infer<typeof loginSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const searchParams = useSearch();
+  
+  // Parse URL for plan parameter
+  const urlParams = new URLSearchParams(searchParams);
+  const planFromUrl = urlParams.get("plan") as "free" | "pro" | "enterprise" | null;
   
   const {
     register: registerLogin,
@@ -36,10 +47,22 @@ export default function AuthPage() {
   const {
     register: registerSignup,
     handleSubmit: handleSubmitSignup,
+    setValue: setSignupValue,
+    watch: watchSignup,
     formState: { errors: signupErrors },
-  } = useForm<InsertUser>({
-    resolver: zodResolver(insertUserSchema),
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      selectedPlan: planFromUrl || "free",
+    },
   });
+
+  // Update plan when URL changes
+  useEffect(() => {
+    if (planFromUrl && (planFromUrl === "free" || planFromUrl === "pro" || planFromUrl === "enterprise")) {
+      setSignupValue("selectedPlan", planFromUrl);
+    }
+  }, [planFromUrl, setSignupValue]);
 
   // Redirect if already logged in (after all hooks are called)
   if (user) {
@@ -51,8 +74,19 @@ export default function AuthPage() {
     loginMutation.mutate(data);
   };
 
-  const onSignup = (data: InsertUser) => {
-    registerMutation.mutate(data);
+  const onSignup = (data: SignupFormData) => {
+    const { selectedPlan, ...userData } = data;
+    
+    registerMutation.mutate(userData, {
+      onSuccess: () => {
+        // Redirect based on selected plan
+        if (selectedPlan === "pro" || selectedPlan === "enterprise") {
+          setLocation(`/checkout/${selectedPlan}`);
+        } else {
+          setLocation("/dashboard");
+        }
+      }
+    });
   };
 
   return (
@@ -195,6 +229,30 @@ export default function AuthPage() {
                       <p className="text-xs text-gray-500 mt-1">
                         Minimum 8 characters with uppercase, lowercase, and number
                       </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="signup-plan">Choose your plan</Label>
+                      <Select 
+                        value={watchSignup("selectedPlan")} 
+                        onValueChange={(value) => setSignupValue("selectedPlan", value as "free" | "pro" | "enterprise")}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a plan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">Free - $0/month (1,000 emails)</SelectItem>
+                          <SelectItem value="pro">Pro - $29/month (50,000 emails)</SelectItem>
+                          <SelectItem value="enterprise">Enterprise - $99/month (500,000 emails)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {signupErrors.selectedPlan && (
+                        <p className="text-sm text-red-600 mt-1">{signupErrors.selectedPlan.message}</p>
+                      )}
+                      {(watchSignup("selectedPlan") === "pro" || watchSignup("selectedPlan") === "enterprise") && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          You'll be redirected to payment after account creation
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-start space-x-2">
                       <Checkbox id="terms" />

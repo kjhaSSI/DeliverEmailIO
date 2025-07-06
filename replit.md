@@ -111,6 +111,12 @@ DeliverMail.io is a full-stack email service platform modeled after SendGrid, pr
 
 ## Changelog
 
+- July 06, 2025. Implemented complete pricing toggle system with homepage integration and signup-to-payment flow
+  - Added Monthly/Yearly billing toggle to homepage pricing section
+  - Enhanced signup form with plan selection dropdown
+  - Implemented automatic redirection: Free plan → dashboard, Paid plans → checkout
+  - Updated pricing component to link with plan parameters (/auth?plan=pro)
+  - Added billing period context throughout application
 - July 06, 2025. Added PostgreSQL database with automatic schema migration and demo user initialization
 - July 05, 2025. Initial setup with in-memory storage
 

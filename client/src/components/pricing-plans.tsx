@@ -110,7 +110,7 @@ export default function PricingPlans({ showTitle = true, className = "" }: Prici
               ))}
             </ul>
 
-            <Link href="/auth">
+            <Link href={`/auth?plan=${plan.name.toLowerCase()}`}>
               <Button
                 className="w-full"
                 variant={plan.buttonVariant}

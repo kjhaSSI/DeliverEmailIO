@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
+import PricingPlans from "@/components/pricing-plans";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ export default function HomePage() {
               <div className="hidden md:block">
                 <div className="flex items-baseline space-x-8">
                   <a href="#" className="text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Home</a>
-                  <Link href="/pricing" className="text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Pricing</Link>
+                  <a href="#pricing" className="text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Pricing</a>
                   <Link href="/docs" className="text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Docs</Link>
                   <a href="#features" className="text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Features</a>
                 </div>
@@ -209,121 +210,8 @@ export default function HomePage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Simple, transparent pricing
-            </h2>
-            <p className="text-xl text-gray-600">
-              Start free, scale as you grow. No hidden fees or commitments.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Free Plan */}
-            <Card className="border border-gray-200">
-              <CardContent className="p-8 text-center">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Free</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-gray-900">$0</span>
-                  <span className="text-gray-600">/month</span>
-                </div>
-                <p className="text-gray-600 mb-8">Perfect for getting started</p>
-                <ul className="text-left space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>1,000 emails/month</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>Basic analytics</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>Email support</span>
-                  </li>
-                </ul>
-                <Link href="/auth">
-                  <Button variant="outline" className="w-full">
-                    Get started
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Pro Plan */}
-            <Card className="border-2 border-primary shadow-lg relative">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-primary text-white px-4 py-1 rounded-full text-sm font-medium">Most Popular</span>
-              </div>
-              <CardContent className="p-8 text-center">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Pro</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-gray-900">$29</span>
-                  <span className="text-gray-600">/month</span>
-                </div>
-                <p className="text-gray-600 mb-8">For growing businesses</p>
-                <ul className="text-left space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>50,000 emails/month</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>Advanced analytics</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>Priority support</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>Template editor</span>
-                  </li>
-                </ul>
-                <Link href="/auth">
-                  <Button className="w-full bg-primary hover:bg-primary-700">
-                    Start free trial
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Enterprise Plan */}
-            <Card className="border border-gray-200">
-              <CardContent className="p-8 text-center">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Enterprise</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-gray-900">$99</span>
-                  <span className="text-gray-600">/month</span>
-                </div>
-                <p className="text-gray-600 mb-8">For large-scale operations</p>
-                <ul className="text-left space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>500,000 emails/month</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>Custom analytics</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>24/7 phone support</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    <span>Dedicated IP</span>
-                  </li>
-                </ul>
-                <Button variant="outline" className="w-full">
-                  Contact sales
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+      <section id="pricing" className="py-20 bg-gray-50">
+        <PricingPlans />
       </section>
 
       {/* Footer */}
