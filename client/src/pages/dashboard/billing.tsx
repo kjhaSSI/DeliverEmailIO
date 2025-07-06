@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { CheckCircle, CreditCard, Calendar, DollarSign, Zap, Download, AlertTria
 export default function Billing() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const { data: subscription, isLoading: isSubscriptionLoading } = useQuery({
     queryKey: ["/api/billing/subscription"],
@@ -278,16 +280,14 @@ export default function Billing() {
                   <Button
                     className="w-full"
                     variant={plan.current ? "outline" : "default"}
-                    disabled={plan.current || upgradeMutation.isPending}
+                    disabled={plan.current}
                     onClick={() => {
                       if (!plan.current && plan.name !== "Free") {
-                        upgradeMutation.mutate(plan.name.toLowerCase());
+                        navigate(`/checkout/${plan.name.toLowerCase()}`);
                       }
                     }}
                   >
-                    {plan.current ? "Current Plan" : 
-                     upgradeMutation.isPending ? "Processing..." : 
-                     `Upgrade to ${plan.name}`}
+                    {plan.current ? "Current Plan" : `Upgrade to ${plan.name}`}
                   </Button>
                 </div>
               ))}

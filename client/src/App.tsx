@@ -21,6 +21,7 @@ import AdminDashboard from "@/pages/admin/admin-dashboard";
 import AdminUsers from "@/pages/admin/users";
 import AdminSystemLogs from "@/pages/admin/system-logs";
 import AdminPlans from "@/pages/admin/plans";
+import Checkout from "@/pages/checkout";
 
 function Router() {
   return (
@@ -38,6 +39,7 @@ function Router() {
       <ProtectedRoute path="/dashboard/api-keys" component={ApiKeys} />
       <ProtectedRoute path="/dashboard/billing" component={Billing} />
       <ProtectedRoute path="/dashboard/settings" component={Settings} />
+      <ProtectedRoute path="/checkout/:plan" component={Checkout} />
       
       {/* Protected Admin Routes */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
