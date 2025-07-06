@@ -23,10 +23,10 @@ DeliverMail.io is a full-stack email service platform modeled after SendGrid, pr
 - **Payment Processing**: Stripe integration for subscription billing
 
 ### Data Storage Solutions
-- **Primary Database**: PostgreSQL with Neon serverless
+- **Primary Database**: PostgreSQL (Replit-hosted) with automatic failover to in-memory storage
 - **ORM**: Drizzle ORM for type-safe database operations
 - **Schema Management**: Drizzle Kit for migrations
-- **Session Store**: In-memory store (development) - can be upgraded to Redis for production
+- **Session Store**: PostgreSQL session store with automatic table creation
 
 ## Key Components
 
@@ -111,7 +111,8 @@ DeliverMail.io is a full-stack email service platform modeled after SendGrid, pr
 
 ## Changelog
 
-- July 05, 2025. Initial setup
+- July 06, 2025. Added PostgreSQL database with automatic schema migration and demo user initialization
+- July 05, 2025. Initial setup with in-memory storage
 
 ## User Preferences
 

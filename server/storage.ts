@@ -6,6 +6,10 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -379,4 +383,270 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  private db: any;
+  public sessionStore: session.SessionStore;
+
+  constructor() {
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL is required for database storage");
+    }
+    
+    const sql = neon(process.env.DATABASE_URL);
+    this.db = drizzle(sql);
+    
+    // Setup PostgreSQL session store
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true,
+    });
+    
+    // Initialize demo users if they don't exist
+    this.initializeDemoUsers();
+  }
+
+  private async initializeDemoUsers() {
+    try {
+      // Check if demo user already exists
+      const existingDemo = await this.getUserByEmail("demo@example.com");
+      if (!existingDemo) {
+        await this.createUser({
+          username: "demo",
+          email: "demo@example.com",
+          password: "3ca3b85b387a493748ae7556520ee8cc39f80cfd24253735cd6ac20c1c5c55d3a33490bc734ecb8d56634a66346cde73fd4b2ab89e7b3b4ef149864c4554bb29.993fd2ed8b6e352b80eb1d8efc2c089e", // password: "password"
+          fullName: "Demo User",
+          role: "user",
+          plan: "free",
+          isActive: true,
+        });
+      }
+
+      // Check if admin user already exists
+      const existingAdmin = await this.getUserByEmail("admin@example.com");
+      if (!existingAdmin) {
+        await this.createUser({
+          username: "admin",
+          email: "admin@example.com",
+          password: "3ca3b85b387a493748ae7556520ee8cc39f80cfd24253735cd6ac20c1c5c55d3a33490bc734ecb8d56634a66346cde73fd4b2ab89e7b3b4ef149864c4554bb29.993fd2ed8b6e352b80eb1d8efc2c089e", // password: "password"
+          fullName: "Admin User",
+          role: "admin",
+          plan: "premium",
+          isActive: true,
+        });
+      }
+    } catch (error) {
+      console.log("Demo users initialization:", error);
+    }
+  }
+
+  // Users
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.username, username));
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.email, email));
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await this.db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const result = await this.db.update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async updateUserStripeInfo(id: number, stripeCustomerId: string, stripeSubscriptionId?: string): Promise<User | undefined> {
+    const updates: any = { stripeCustomerId, updatedAt: new Date() };
+    if (stripeSubscriptionId) {
+      updates.stripeSubscriptionId = stripeSubscriptionId;
+    }
+    const result = await this.db.update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await this.db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  // Email Templates
+  async getEmailTemplates(userId: number): Promise<EmailTemplate[]> {
+    return await this.db.select().from(emailTemplates)
+      .where(eq(emailTemplates.userId, userId))
+      .orderBy(desc(emailTemplates.createdAt));
+  }
+
+  async getEmailTemplate(id: number, userId: number): Promise<EmailTemplate | undefined> {
+    const result = await this.db.select().from(emailTemplates)
+      .where(and(eq(emailTemplates.id, id), eq(emailTemplates.userId, userId)));
+    return result[0];
+  }
+
+  async createEmailTemplate(template: InsertEmailTemplate & { userId: number }): Promise<EmailTemplate> {
+    const result = await this.db.insert(emailTemplates).values(template).returning();
+    return result[0];
+  }
+
+  async updateEmailTemplate(id: number, userId: number, updates: Partial<EmailTemplate>): Promise<EmailTemplate | undefined> {
+    const result = await this.db.update(emailTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(emailTemplates.id, id), eq(emailTemplates.userId, userId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteEmailTemplate(id: number, userId: number): Promise<boolean> {
+    const result = await this.db.delete(emailTemplates)
+      .where(and(eq(emailTemplates.id, id), eq(emailTemplates.userId, userId)));
+    return result.rowCount > 0;
+  }
+
+  // Email Logs
+  async getEmailLogs(userId: number, filters?: { status?: string; email?: string; startDate?: Date; endDate?: Date }): Promise<EmailLog[]> {
+    let query = this.db.select().from(emailLogs).where(eq(emailLogs.userId, userId));
+    
+    if (filters?.status) {
+      query = query.where(eq(emailLogs.status, filters.status));
+    }
+    if (filters?.email) {
+      query = query.where(eq(emailLogs.to, filters.email));
+    }
+    if (filters?.startDate) {
+      query = query.where(gte(emailLogs.sentAt, filters.startDate));
+    }
+    if (filters?.endDate) {
+      query = query.where(lte(emailLogs.sentAt, filters.endDate));
+    }
+    
+    return await query.orderBy(desc(emailLogs.sentAt));
+  }
+
+  async createEmailLog(log: InsertEmailLog & { userId: number; status: string; apiKeyId?: number }): Promise<EmailLog> {
+    const result = await this.db.insert(emailLogs).values(log).returning();
+    return result[0];
+  }
+
+  // API Keys
+  async getApiKeys(userId: number): Promise<ApiKey[]> {
+    return await this.db.select().from(apiKeys)
+      .where(eq(apiKeys.userId, userId))
+      .orderBy(desc(apiKeys.createdAt));
+  }
+
+  async getApiKey(id: number, userId: number): Promise<ApiKey | undefined> {
+    const result = await this.db.select().from(apiKeys)
+      .where(and(eq(apiKeys.id, id), eq(apiKeys.userId, userId)));
+    return result[0];
+  }
+
+  async getApiKeyByKey(key: string): Promise<ApiKey | undefined> {
+    const result = await this.db.select().from(apiKeys).where(eq(apiKeys.key, key));
+    return result[0];
+  }
+
+  async createApiKey(apiKey: InsertApiKey & { userId: number; key: string }): Promise<ApiKey> {
+    const result = await this.db.insert(apiKeys).values(apiKey).returning();
+    return result[0];
+  }
+
+  async updateApiKey(id: number, userId: number, updates: Partial<ApiKey>): Promise<ApiKey | undefined> {
+    const result = await this.db.update(apiKeys)
+      .set(updates)
+      .where(and(eq(apiKeys.id, id), eq(apiKeys.userId, userId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteApiKey(id: number, userId: number): Promise<boolean> {
+    const result = await this.db.delete(apiKeys)
+      .where(and(eq(apiKeys.id, id), eq(apiKeys.userId, userId)));
+    return result.rowCount > 0;
+  }
+
+  // System Logs
+  async createSystemLog(log: { userId?: number; action: string; endpoint?: string; details?: any }): Promise<SystemLog> {
+    const result = await this.db.insert(systemLogs).values(log).returning();
+    return result[0];
+  }
+
+  async getSystemLogs(filters?: { userId?: number; action?: string; startDate?: Date; endDate?: Date }): Promise<SystemLog[]> {
+    let query = this.db.select().from(systemLogs);
+    
+    if (filters?.userId) {
+      query = query.where(eq(systemLogs.userId, filters.userId));
+    }
+    if (filters?.action) {
+      query = query.where(eq(systemLogs.action, filters.action));
+    }
+    if (filters?.startDate) {
+      query = query.where(gte(systemLogs.createdAt, filters.startDate));
+    }
+    if (filters?.endDate) {
+      query = query.where(lte(systemLogs.createdAt, filters.endDate));
+    }
+    
+    return await query.orderBy(desc(systemLogs.createdAt));
+  }
+
+  // AI Queries
+  async createAiQuery(query: InsertAiQuery & { userId?: number }): Promise<AiQuery> {
+    const result = await this.db.insert(aiQueries).values(query).returning();
+    return result[0];
+  }
+
+  async getAiQueries(userId?: number): Promise<AiQuery[]> {
+    let query = this.db.select().from(aiQueries);
+    if (userId) {
+      query = query.where(eq(aiQueries.userId, userId));
+    }
+    return await query.orderBy(desc(aiQueries.createdAt));
+  }
+
+  async updateAiQueryRating(id: number, rating: number): Promise<AiQuery | undefined> {
+    const result = await this.db.update(aiQueries)
+      .set({ rating })
+      .where(eq(aiQueries.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Stripe Subscriptions
+  async getStripeSubscription(userId: number): Promise<StripeSubscription | undefined> {
+    const result = await this.db.select().from(stripeSubscriptions)
+      .where(eq(stripeSubscriptions.userId, userId));
+    return result[0];
+  }
+
+  async createStripeSubscription(subscription: Omit<StripeSubscription, 'id' | 'createdAt' | 'updatedAt'>): Promise<StripeSubscription> {
+    const result = await this.db.insert(stripeSubscriptions).values(subscription).returning();
+    return result[0];
+  }
+
+  async updateStripeSubscription(id: number, updates: Partial<StripeSubscription>): Promise<StripeSubscription | undefined> {
+    const result = await this.db.update(stripeSubscriptions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(stripeSubscriptions.id, id))
+      .returning();
+    return result[0];
+  }
+}
+
+// Choose storage implementation based on environment
+export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemStorage();
