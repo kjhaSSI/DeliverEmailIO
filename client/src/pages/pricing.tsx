@@ -318,7 +318,6 @@ export default function PricingPage() {
                 <li><a href="/#features" className="hover:text-white transition-colors">Features</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
                 <li><Link href="/docs" className="hover:text-white transition-colors">Documentation</Link></li>
-                <li><a href="#" className="hover:text-white transition-colors">API Reference</a></li>
               </ul>
             </div>
             <div>

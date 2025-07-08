@@ -568,7 +568,6 @@ print(f"Found {len(logs)} email logs")`}
                 <li><a href="/#features" className="hover:text-white transition-colors">Features</a></li>
                 <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                 <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">API Reference</a></li>
               </ul>
             </div>
             <div>
