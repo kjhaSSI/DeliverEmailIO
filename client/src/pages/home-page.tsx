@@ -14,10 +14,6 @@ export default function HomePage() {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  if (user) {
-    return <Link href="/dashboard">Redirecting to dashboard...</Link>;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
